@@ -21,40 +21,40 @@ MainWindow::MainWindow(QWidget *parent) :
 
     playerName = ui->comboBox->count() ? ui->comboBox->itemText(0) : "clementine";
 
-//    m_player = new QDBusInterface("org.mpris." + playerName, "/Player",
-//                            "org.freedesktop.MediaPlayer", QDBusConnection::sessionBus());
-    m_player = new QDBusInterface("org.mpris.MediaPlayer2." + playerName, "/org/mpris/MediaPlayer2",
-                                    "org.freedesktop.MediaPlayer", QDBusConnection::sessionBus());
+    m_player = new QDBusInterface("org.mpris." + playerName, "/Player",
+                            "org.freedesktop.MediaPlayer", QDBusConnection::sessionBus());
+//    m_player = new QDBusInterface("org.mpris.MediaPlayer2." + playerName, "/org/mpris/MediaPlayer2",
+//                                    "org.freedesktop.MediaPlayer", QDBusConnection::sessionBus());
 
     if (m_player->lastError().type() != QDBusError::NoError) {
         qDebug() << QDBusError::errorString(m_player->lastError().type());
         return;
     }
 
-//    QDBusConnection::sessionBus().connect(
-//                "org.mpris." + playerName,
-//                "/Player",
-//                "org.freedesktop.MediaPlayer",
-//                "TrackChange",
-//                "a{sv}",
-//                this,
-//                SLOT(onTrackChange(QVariantMap)));
+    QDBusConnection::sessionBus().connect(
+                "org.mpris." + playerName,
+                "/Player",
+                "org.freedesktop.MediaPlayer",
+                "TrackChange",
+                "a{sv}",
+                this,
+                SLOT(onTrackChange(QVariantMap)));
 
-//    QDBusConnection::sessionBus().connect(
-//                "org.mpris." + playerName,
-//                "/Player",
-//                "org.freedesktop.MediaPlayer",
-//                "StatusChange",
-//                "(iiii)",
-//                this,
-//                SLOT(onPlayerStatusChange (PlayerStatus)));
+    QDBusConnection::sessionBus().connect(
+                "org.mpris." + playerName,
+                "/Player",
+                "org.freedesktop.MediaPlayer",
+                "StatusChange",
+                "(iiii)",
+                this,
+                SLOT(onPlayerStatusChange (PlayerStatus)));
 
-    QDBusConnection::sessionBus().connect("org.mpris.MediaPlayer2." + playerName,
-                                          "/org/mpris/MediaPlayer2",
-                                          "org.freedesktop.DBus.Properties",
-                                          "PropertiesChanged",
-                                          this,
-                                          SLOT(onPropertyChange(QDBusMessage)));
+//    QDBusConnection::sessionBus().connect("org.mpris.MediaPlayer2." + playerName,
+//                                          "/org/mpris/MediaPlayer2",
+//                                          "org.freedesktop.DBus.Properties",
+//                                          "PropertiesChanged",
+//                                          this,
+//                                          SLOT(onPropertyChange(QDBusMessage)));
 
 
     QDBusReply<QVariantMap> m_metadata = m_player->call("GetMetadata");
@@ -67,12 +67,27 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
-    QDBusConnection::sessionBus().disconnect ("org.mpris.MediaPlayer2." + playerName,
-                                        "/org/mpris/MediaPlayer2",
-                                        "org.freedesktop.DBus.Properties",
-                                        "PropertiesChanged",
+    QDBusConnection::sessionBus().disconnect("org.mpris." + playerName,
+                                        "/Player",
+                                        "org.freedesktop.MediaPlayer",
+                                        "StatusChange",
+                                        "(iiii)",
                                         this,
-                                        SLOT (onPropertyChange (QDBusMessage)));
+                                        SLOT(onPlayerStatusChange(PlayerStatus)));
+    QDBusConnection::sessionBus().disconnect("org.mpris." + playerName,
+                                        "/Player",
+                                        "org.freedesktop.MediaPlayer",
+                                        "TrackChange",
+                                        "a{sv}",
+                                        this,
+                                        SLOT(onTrackChange(QVariantMap)));
+
+//    QDBusConnection::sessionBus().disconnect ("org.mpris.MediaPlayer2." + playerName,
+//                                        "/org/mpris/MediaPlayer2",
+//                                        "org.freedesktop.DBus.Properties",
+//                                        "PropertiesChanged",
+//                                        this,
+//                                        SLOT (onPropertyChange (QDBusMessage)));
 
     delete m_player;
     delete ui;
