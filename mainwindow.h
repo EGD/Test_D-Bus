@@ -69,6 +69,8 @@ private:
     QStringList getPlayersList();
     QStringList getPlayersList_MPRISv1();
     QStringList getPlayersList_MPRISv2();
+    void connectToBus();
+    void disconnectToBus();
 };
 
 Q_DECLARE_METATYPE (PlayerStatus)

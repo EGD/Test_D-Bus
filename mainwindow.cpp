@@ -9,15 +9,38 @@ enum PlayStatus
     PSStopped
 };
 
+QDBusArgument &operator<< (QDBusArgument &arg, const PlayerStatus &ps)
+{
+    arg.beginStructure ();
+    arg << ps.Play
+        << ps.Random
+        << ps.Repeat
+        << ps.RepeatPlaylist;
+    arg.endStructure ();
+    return arg;
+}
+
+const QDBusArgument &operator>> (const QDBusArgument &arg, PlayerStatus &ps)
+{
+    arg.beginStructure();
+    arg >> ps.Play
+        >> ps.Random
+        >> ps.Repeat
+        >> ps.RepeatPlaylist;
+    arg.endStructure();
+    return arg;
+}
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWindow)
+    ui(new Ui::MainWindow),
+    plVer(Ui::v1)
 {
     qDBusRegisterMetaType<PlayerStatus>();
 
     ui->setupUi(this);
     ui->comboBox->clear();
-    ui->comboBox->addItems(MainWindow::getPlayersList());
+    ui->comboBox->addItems(getPlayersList());
 
     playerName = ui->comboBox->count() ? ui->comboBox->itemText(0) : "clementine";
 
@@ -31,6 +54,26 @@ MainWindow::MainWindow(QWidget *parent) :
         return;
     }
 
+    QDBusReply<QVariantMap> m_metadata = m_player->call("GetMetadata");
+    QVariantMap trackInfo = m_metadata.value();
+    QList<QString> keys = trackInfo.keys();
+    foreach (QString key, keys) {
+        ui->Memo->appendPlainText('%'+key);
+    }
+
+    connectToBus();
+}
+
+MainWindow::~MainWindow()
+{
+    disconnectToBus();
+
+    delete m_player;
+    delete ui;
+}
+
+void MainWindow::connectToBus()
+{
     QDBusConnection::sessionBus().connect(
                 "org.mpris." + playerName,
                 "/Player",
@@ -55,17 +98,9 @@ MainWindow::MainWindow(QWidget *parent) :
 //                                          "PropertiesChanged",
 //                                          this,
 //                                          SLOT(onPropertyChange(QDBusMessage)));
-
-
-    QDBusReply<QVariantMap> m_metadata = m_player->call("GetMetadata");
-    QVariantMap trackInfo = m_metadata.value();
-    QList<QString> keys = trackInfo.keys();
-    foreach (QString key, keys) {
-        ui->Memo->appendPlainText('%'+key);
-    }
 }
 
-MainWindow::~MainWindow()
+void MainWindow::disconnectToBus()
 {
     QDBusConnection::sessionBus().disconnect("org.mpris." + playerName,
                                         "/Player",
@@ -88,31 +123,6 @@ MainWindow::~MainWindow()
 //                                        "PropertiesChanged",
 //                                        this,
 //                                        SLOT (onPropertyChange (QDBusMessage)));
-
-    delete m_player;
-    delete ui;
-}
-
-QDBusArgument &operator<< (QDBusArgument &arg, const PlayerStatus &ps)
-{
-    arg.beginStructure ();
-    arg << ps.Play
-        << ps.Random
-        << ps.Repeat
-        << ps.RepeatPlaylist;
-    arg.endStructure ();
-    return arg;
-}
-
-const QDBusArgument &operator>> (const QDBusArgument &arg, PlayerStatus &ps)
-{
-    arg.beginStructure();
-    arg >> ps.Play
-        >> ps.Random
-        >> ps.Repeat
-        >> ps.RepeatPlaylist;
-    arg.endStructure();
-    return arg;
 }
 
 QStringList MainWindow::getPlayersList()    // переделать. сделать через абстрактный класс, с переопределением метода
@@ -213,6 +223,9 @@ void MainWindow::playerChange(const QString &Name)
     delete m_player;
     m_player = new QDBusInterface("org.mpris." + playerName, "/Player",
                                   "org.freedesktop.MediaPlayer", QDBusConnection::sessionBus());
+
+    disconnectToBus();
+    connectToBus();
 }
 
 void MainWindow::setPlayerVersion(bool bVer_2 = false)
@@ -220,7 +233,7 @@ void MainWindow::setPlayerVersion(bool bVer_2 = false)
     bVer_2 ? plVer = Ui::v2 : plVer = Ui::v1;
 
     ui->comboBox->clear();
-    ui->comboBox->addItems(MainWindow::getPlayersList());
+    ui->comboBox->addItems(getPlayersList());
 }
 
 void MainWindow::onTrackChange(QVariantMap trackInfo)
