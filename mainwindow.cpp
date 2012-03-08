@@ -229,7 +229,7 @@ QString MainWindow::secToTime(int secs) {
         sec -= 60;
     }
 
-    return QString("%1:%2").arg(min).arg(sec);
+    return QString("%1:%2").arg(min).arg(sec,2,10,QChar('0'));
 }
 
 QString MainWindow::formatMetadata(QVariantMap &trackInfo, const QString &format) {
@@ -240,9 +240,7 @@ QString MainWindow::formatMetadata(QVariantMap &trackInfo, const QString &format
     int cpPos = 0;
 
     if (format.contains("time")) {
-        qDebug() << trackInfo["time"].toString();
         trackInfo["time"] = secToTime(trackInfo["time"].toInt());
-        qDebug() << trackInfo["time"].toString();
     }
 
     while ( (srPos = rx.indexIn(format,srPos)) != -1 ) {
