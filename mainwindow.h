@@ -69,6 +69,8 @@ private:
     QStringList getPlayersList();
     QStringList getPlayersList_MPRISv1();
     QStringList getPlayersList_MPRISv2();
+    QString formatMetadata(QVariantMap &trackInfo, const QString &format);
+    static QString secToTime(int secs);
     void connectToBus();
     void disconnectToBus();
 };

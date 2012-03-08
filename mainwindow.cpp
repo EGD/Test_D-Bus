@@ -1,4 +1,5 @@
 #include <QDebug>
+
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
@@ -36,6 +37,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow),
     plVer(Ui::v1)
 {
+    setWindowTitle(QString("Test D-Bus"));
+
     qDBusRegisterMetaType<PlayerStatus>();
 
     ui->setupUi(this);
@@ -170,26 +173,8 @@ void MainWindow::getMetadata()
     if ( m_metadata.isValid() )
     {
         QVariantMap trackInfo = m_metadata.value();
-        QRegExp rx("%(\\w+-?\\w+)");
 
-        QString format = ui->lineEdit->text();
-        QString outText;
-        int srPos = 0;
-        int cpPos = 0;
-
-        while ( (srPos = rx.indexIn(format,srPos)) != -1 ) {
-            if ( trackInfo.contains(rx.cap(1)) ) {
-                outText.append(format.mid(cpPos,srPos - cpPos) + trackInfo[rx.cap(1)].toString());
-                cpPos = srPos + rx.matchedLength();
-            } else {
-                qDebug() << rx.cap(1);
-            }
-            srPos += rx.matchedLength();
-        }
-
-        outText.append(format.mid(cpPos));
-
-        ui->plainTextEdit->appendPlainText(outText);
+        ui->plainTextEdit->appendPlainText(formatMetadata(trackInfo, ui->lineEdit->text()));
     }
 }
 
@@ -236,14 +221,29 @@ void MainWindow::setPlayerVersion(bool bVer_2 = false)
     ui->comboBox->addItems(getPlayersList());
 }
 
-void MainWindow::onTrackChange(QVariantMap trackInfo)
-{
+QString MainWindow::secToTime(int secs) {
+    int min = 0;
+    int sec = secs;
+    while (sec > 60) {
+        ++min;
+        sec -= 60;
+    }
+
+    return QString("%1:%2").arg(min).arg(sec);
+}
+
+QString MainWindow::formatMetadata(QVariantMap &trackInfo, const QString &format) {
     QRegExp rx("%(\\w+-?\\w+)");
 
-    QString format = ui->lineEdit->text();
     QString outText;
     int srPos = 0;
     int cpPos = 0;
+
+    if (format.contains("time")) {
+        qDebug() << trackInfo["time"].toString();
+        trackInfo["time"] = secToTime(trackInfo["time"].toInt());
+        qDebug() << trackInfo["time"].toString();
+    }
 
     while ( (srPos = rx.indexIn(format,srPos)) != -1 ) {
         outText.append(format.mid(cpPos,srPos - cpPos)).append(trackInfo.contains(rx.cap(1)) ? trackInfo[rx.cap(1)].toString() : " " );
@@ -253,7 +253,12 @@ void MainWindow::onTrackChange(QVariantMap trackInfo)
 
     outText.append(format.mid(cpPos));
 
-    ui->plainTextEdit->appendPlainText(outText);
+    return outText;
+}
+
+void MainWindow::onTrackChange(QVariantMap trackInfo)
+{
+    ui->plainTextEdit->appendPlainText(formatMetadata(trackInfo, ui->lineEdit->text()));
 }
 
 void MainWindow::onPlayerStatusChange(PlayerStatus status) {
