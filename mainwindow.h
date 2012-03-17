@@ -58,6 +58,7 @@ protected slots:
     void onTrackChange(QVariantMap m_metadata);
     void onPlayerStatusChange(PlayerStatus status);
     void onPropertyChange(QDBusMessage msg);
+    void onPlayersExistenceChanged(QString, QString, QString);
 
 private:
     Ui::MainWindow *ui;
@@ -71,6 +72,7 @@ private:
     QStringList getPlayersList_MPRISv2();
     static QString formatMetadata(QVariantMap &trackInfo, const QString &format);
     static QString secToTime(int secs);
+    void refreshPlayersList();
     void connectToBus();
     void disconnectToBus();
 };

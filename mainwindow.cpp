@@ -42,10 +42,16 @@ MainWindow::MainWindow(QWidget *parent) :
     qDBusRegisterMetaType<PlayerStatus>();
 
     ui->setupUi(this);
-    ui->comboBox->clear();
-    ui->comboBox->addItems(getPlayersList());
+    refreshPlayersList();
 
     playerName = ui->comboBox->count() ? ui->comboBox->itemText(0) : "clementine";
+
+    QDBusConnection::sessionBus().connect("org.freedesktop.DBus",
+                                          "/org/freedesktop/DBus",
+                                          "org.freedesktop.DBus",
+                                          "NameOwnerChanged",
+                                          this,
+                                          SLOT(onPlayersExistenceChanged(QString, QString, QString)));
 
     m_player = new QDBusInterface("org.mpris." + playerName, "/Player",
                             "org.freedesktop.MediaPlayer", QDBusConnection::sessionBus());
@@ -70,6 +76,12 @@ MainWindow::MainWindow(QWidget *parent) :
 MainWindow::~MainWindow()
 {
     disconnectToBus();
+    QDBusConnection::sessionBus().disconnect("org.freedesktop.DBus",
+                                           "/org/freedesktop/DBus",
+                                           "org.freedesktop.DBus",
+                                           "NameOwnerChanged",
+                                           this,
+                                           SLOT(onPlayersExistenceChanged(QString, QString, QString)));
 
     delete m_player;
     delete ui;
@@ -164,9 +176,9 @@ QStringList MainWindow::getPlayersList_MPRISv2()
 void MainWindow::getMetadata()
 {
     if (!m_player->isValid())
-        {
-            return;
-        }
+    {
+        return;
+    }
 
     QDBusReply<QVariantMap> m_metadata = m_player->call("GetMetadata");
 
@@ -180,6 +192,11 @@ void MainWindow::getMetadata()
 
 void MainWindow::playerPlay()
 {
+    if (!m_player->isValid())
+    {
+        return;
+    }
+
     if (m_status.Play == PSPaused) {
         m_player->call(QString("Play"));
     } else {
@@ -189,27 +206,45 @@ void MainWindow::playerPlay()
 
 void MainWindow::playerStop()
 {
+    if (!m_player->isValid())
+    {
+        return;
+    }
+
     m_player->call(QString("Stop"));
 }
 
 void MainWindow::playerPrev()
 {
+    if (!m_player->isValid())
+    {
+        return;
+    }
+
     m_player->call(QString("Prev"));
 }
 
 void MainWindow::playerNext()
 {
+    if (!m_player->isValid())
+    {
+        return;
+    }
+
     m_player->call(QString("Next"));
 }
 
 void MainWindow::playerChange(const QString &Name)
 {
     playerName = Name;
-    delete m_player;
+
+    if (m_player->isValid()) {
+        disconnectToBus();
+        delete m_player;
+    }
+
     m_player = new QDBusInterface("org.mpris." + playerName, "/Player",
                                   "org.freedesktop.MediaPlayer", QDBusConnection::sessionBus());
-
-    disconnectToBus();
     connectToBus();
 }
 
@@ -217,8 +252,7 @@ void MainWindow::setPlayerVersion(bool bVer_2 = false)
 {
     bVer_2 ? plVer = Ui::v2 : plVer = Ui::v1;
 
-    ui->comboBox->clear();
-    ui->comboBox->addItems(getPlayersList());
+    refreshPlayersList();
 }
 
 QString MainWindow::secToTime(int secs) {
@@ -272,6 +306,12 @@ void MainWindow::onPlayerStatusChange(PlayerStatus status) {
     }
 }
 
+void MainWindow::refreshPlayersList()
+{
+    ui->comboBox->clear();
+    ui->comboBox->addItems(getPlayersList());
+}
+
 void MainWindow::onPropertyChange(QDBusMessage msg)
 {
     QDBusArgument arg = msg.arguments().at(1).value<QDBusArgument>();
@@ -288,5 +328,48 @@ void MainWindow::onPropertyChange(QDBusMessage msg)
     {
         arg = v.value<QDBusArgument>();
         onTrackChange(qdbus_cast<QVariantMap>(arg));
+    }
+}
+
+void MainWindow::onPlayersExistenceChanged(QString name, QString, QString newOwner)
+{
+    QString newPlayer;
+
+    switch (plVer) {
+    case MPRIS::v2:
+        if (!name.startsWith("org.mpris.MediaPlayer2.")) {
+            return;
+        }
+        newPlayer = name.replace("org.mpris.MediaPlayer2.","");
+        break;
+    case MPRIS::v1:
+        if (!name.startsWith("org.mpris.") || name.startsWith("org.mpris.MediaPlayer2.")) {
+            return;
+        }
+        newPlayer = name.replace("org.mpris.MediaPlayer2.","");
+        break;
+    default:
+        break;
+    }
+
+     =
+    refreshPlayersList();
+
+    if (!newOwner.isEmpty()) {
+        qDebug() << "Available new player " + newPlayer + ".";
+        qDebug() << "newOwner " + newOwner;
+
+        if (playerName.compare(newPlayer)) {
+            playerChange(newPlayer);
+        }
+    } else if (newOwner.isEmpty ()) {
+        qDebug() << "Player " + newPlayer + "shutdown.";
+        qDebug() << "newOwner " + newOwner;
+
+        if (playerName.compare(newPlayer))
+        {
+            disconnectToBus();
+            delete m_player;
+        }
     }
 }
