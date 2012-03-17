@@ -320,25 +320,6 @@ void MainWindow::refreshPlayersList()
     ui->comboBox->addItems(getPlayersList());
 }
 
-void MainWindow::onPropertyChange(QDBusMessage msg)
-{
-    QDBusArgument arg = msg.arguments().at(1).value<QDBusArgument>();
-    const QVariantMap& map = qdbus_cast<QVariantMap>(arg);
-
-    QVariant v = map.value("PlaybackStatus");
-    if (v.isValid() && v.toString() == "Stopped")
-    {
-        return;
-    }
-
-    v = map.value("Metadata");
-    if (v.isValid())
-    {
-        arg = v.value<QDBusArgument>();
-        onTrackChange(qdbus_cast<QVariantMap>(arg));
-    }
-}
-
 void MainWindow::onPlayersExistenceChanged(QString name, QString, QString newOwner)
 {
     switch (plVer) {
