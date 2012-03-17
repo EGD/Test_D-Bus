@@ -108,7 +108,7 @@ void MainWindow::connectToBus()
                 "StatusChange",
                 "(iiii)",
                 this,
-                SLOT(onPlayerStatusChange (PlayerStatus)));
+                SLOT(onPlayerStatusChange(PlayerStatus)));
 
 //    QDBusConnection::sessionBus().connect("org.mpris.MediaPlayer2." + playerName,
 //                                          "/org/mpris/MediaPlayer2",
@@ -161,10 +161,15 @@ QStringList MainWindow::getPlayersList()    // переделать. сдела�
 QStringList MainWindow::getPlayersList_MPRISv1()
 {
     QStringList services = QDBusConnection::sessionBus().interface()->registeredServiceNames().value().filter("org.mpris.");
-    services.replaceInStrings(QRegExp("org.mpris.(MediaPlayer2.)?"),"");
-    services.removeDuplicates();
+    QStringList ret_list;
 
-    return services;
+    foreach (QString service, services) {
+        if (service.startsWith("org.mpris.") && !service.startsWith("org.mpris.MediaPlayer2.")) {
+            ret_list << service.replace("org.mpris.","");
+        }
+    }
+
+    return ret_list;
 }
 
 QStringList MainWindow::getPlayersList_MPRISv2()
