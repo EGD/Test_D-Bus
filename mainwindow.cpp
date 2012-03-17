@@ -70,10 +70,7 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->Memo->appendPlainText('%'+key);
     }
 
-    PlayerStatus status;
-    QDBusMessage msg = m_player->call("GetStatus");
-    QDBusArgument arg = msg.arguments().at(0).value<QDBusArgument>();
-    arg >> status;
+    QDBusReply<PlayerStatus> status = m_player->call("GetStatus");
     onPlayerStatusChange(status);
 
     connectToBus();
