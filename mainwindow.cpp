@@ -3,7 +3,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 
-enum PlayStatus
+enum PlayingStatus
 {
     PSPlaying = 0,
     PSPaused,
@@ -69,6 +69,12 @@ MainWindow::MainWindow(QWidget *parent) :
     foreach (QString key, keys) {
         ui->Memo->appendPlainText('%'+key);
     }
+
+    PlayerStatus status;
+    QDBusMessage msg = m_player->call("GetStatus");
+    QDBusArgument arg = msg.arguments().at(0).value<QDBusArgument>();
+    arg >> status;
+    onPlayerStatusChange(status);
 
     connectToBus();
 }
@@ -175,7 +181,7 @@ QStringList MainWindow::getPlayersList_MPRISv2()
 
 void MainWindow::getMetadata()
 {
-    if (!m_player->isValid())
+    if (!m_player || !m_player->isValid())
     {
         return;
     }
@@ -192,7 +198,7 @@ void MainWindow::getMetadata()
 
 void MainWindow::playerPlay()
 {
-    if (!m_player->isValid())
+    if (!m_player || !m_player->isValid())
     {
         return;
     }
@@ -206,7 +212,7 @@ void MainWindow::playerPlay()
 
 void MainWindow::playerStop()
 {
-    if (!m_player->isValid())
+    if (!m_player || !m_player->isValid())
     {
         return;
     }
@@ -216,7 +222,7 @@ void MainWindow::playerStop()
 
 void MainWindow::playerPrev()
 {
-    if (!m_player->isValid())
+    if (!m_player || !m_player->isValid())
     {
         return;
     }
@@ -226,7 +232,7 @@ void MainWindow::playerPrev()
 
 void MainWindow::playerNext()
 {
-    if (!m_player->isValid())
+    if (!m_player || !m_player->isValid())
     {
         return;
     }
@@ -238,7 +244,7 @@ void MainWindow::playerChange(const QString &Name)
 {
     playerName = Name;
 
-    if (m_player->isValid()) {
+    if (m_player && m_player->isValid()) {
         disconnectToBus();
         delete m_player;
     }
@@ -333,27 +339,22 @@ void MainWindow::onPropertyChange(QDBusMessage msg)
 
 void MainWindow::onPlayersExistenceChanged(QString name, QString, QString newOwner)
 {
-    QString newPlayer;
-
     switch (plVer) {
     case MPRIS::v2:
         if (!name.startsWith("org.mpris.MediaPlayer2.")) {
             return;
         }
-        newPlayer = name.replace("org.mpris.MediaPlayer2.","");
         break;
     case MPRIS::v1:
         if (!name.startsWith("org.mpris.") || name.startsWith("org.mpris.MediaPlayer2.")) {
             return;
         }
-        newPlayer = name.replace("org.mpris.MediaPlayer2.","");
         break;
     default:
         break;
     }
 
-     =
-    refreshPlayersList();
+    QString newPlayer = name.replace(QRegExp("org.mpris.(MediaPlayer2.)?"),"");
 
     if (!newOwner.isEmpty()) {
         qDebug() << "Available new player " + newPlayer + ".";
@@ -363,7 +364,7 @@ void MainWindow::onPlayersExistenceChanged(QString name, QString, QString newOwn
             playerChange(newPlayer);
         }
     } else if (newOwner.isEmpty ()) {
-        qDebug() << "Player " + newPlayer + "shutdown.";
+        qDebug() << "Player " + newPlayer + " shutdown.";
         qDebug() << "newOwner " + newOwner;
 
         if (playerName.compare(newPlayer))
@@ -372,4 +373,6 @@ void MainWindow::onPlayersExistenceChanged(QString name, QString, QString newOwn
             delete m_player;
         }
     }
+
+    refreshPlayersList();
 }
