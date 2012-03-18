@@ -44,6 +44,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     refreshPlayersList();
 
+    connect(ui->comboBox,SIGNAL(currentIndexChanged(QString)),this,SLOT(playerChange(QString));
+
     playerName = ui->comboBox->count() ? ui->comboBox->itemText(0) : "clementine";
 
     QDBusConnection::sessionBus().connect("org.freedesktop.DBus",
