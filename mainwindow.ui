@@ -129,22 +129,6 @@
  <resources/>
  <connections>
   <connection>
-   <sender>comboBox</sender>
-   <signal>currentIndexChanged(QString)</signal>
-   <receiver>MainWindow</receiver>
-   <slot>playerChange(QString)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>564</x>
-     <y>28</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>327</x>
-     <y>133</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
    <sender>checkBox</sender>
    <signal>toggled(bool)</signal>
    <receiver>MainWindow</receiver>
@@ -168,7 +152,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>481</x>
-     <y>146</y>
+     <y>211</y>
     </hint>
     <hint type="destinationlabel">
      <x>504</x>
@@ -184,7 +168,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>520</x>
-     <y>146</y>
+     <y>211</y>
     </hint>
     <hint type="destinationlabel">
      <x>473</x>
@@ -200,7 +184,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>441</x>
-     <y>146</y>
+     <y>211</y>
     </hint>
     <hint type="destinationlabel">
      <x>404</x>
@@ -216,7 +200,7 @@
    <hints>
     <hint type="sourcelabel">
      <x>564</x>
-     <y>146</y>
+     <y>211</y>
     </hint>
     <hint type="destinationlabel">
      <x>530</x>
@@ -231,8 +215,8 @@
    <slot>getMetadata()</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>483</x>
-     <y>169</y>
+     <x>566</x>
+     <y>240</y>
     </hint>
     <hint type="destinationlabel">
      <x>362</x>
