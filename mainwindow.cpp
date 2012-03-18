@@ -55,8 +55,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     m_player = new QDBusInterface("org.mpris." + playerName, "/Player",
                             "org.freedesktop.MediaPlayer", QDBusConnection::sessionBus());
-//    m_player = new QDBusInterface("org.mpris.MediaPlayer2." + playerName, "/org/mpris/MediaPlayer2",
-//                                    "org.freedesktop.MediaPlayer", QDBusConnection::sessionBus());
+    //m_player = new QDBusInterface("org.mpris.MediaPlayer2." + playerName, "/org/mpris/MediaPlayer2",
+    //                                "org.freedesktop.MediaPlayer", QDBusConnection::sessionBus());
 
     if (m_player->lastError().type() != QDBusError::NoError) {
         qDebug() << QDBusError::errorString(m_player->lastError().type());
@@ -110,37 +110,42 @@ void MainWindow::connectToBus()
                 this,
                 SLOT(onPlayerStatusChange(PlayerStatus)));
 
-//    QDBusConnection::sessionBus().connect("org.mpris.MediaPlayer2." + playerName,
-//                                          "/org/mpris/MediaPlayer2",
-//                                          "org.freedesktop.DBus.Properties",
-//                                          "PropertiesChanged",
-//                                          this,
-//                                          SLOT(onPropertyChange(QDBusMessage)));
+    QDBusConnection::sessionBus().connect(
+                "org.mpris.MediaPlayer2." + playerName,
+                "/org/mpris/MediaPlayer2",
+                "org.freedesktop.DBus.Properties",
+                "PropertiesChanged",
+                this,
+                SLOT(onPropertyChange(QDBusMessage)));
 }
 
 void MainWindow::disconnectToBus()
 {
-    QDBusConnection::sessionBus().disconnect("org.mpris." + playerName,
-                                        "/Player",
-                                        "org.freedesktop.MediaPlayer",
-                                        "StatusChange",
-                                        "(iiii)",
-                                        this,
-                                        SLOT(onPlayerStatusChange(PlayerStatus)));
-    QDBusConnection::sessionBus().disconnect("org.mpris." + playerName,
-                                        "/Player",
-                                        "org.freedesktop.MediaPlayer",
-                                        "TrackChange",
-                                        "a{sv}",
-                                        this,
-                                        SLOT(onTrackChange(QVariantMap)));
+    QDBusConnection::sessionBus().disconnect(
+                "org.mpris." + playerName,
+                "/Player",
+                "org.freedesktop.MediaPlayer",
+                "StatusChange",
+                "(iiii)",
+                this,
+                SLOT(onPlayerStatusChange(PlayerStatus)));
 
-//    QDBusConnection::sessionBus().disconnect ("org.mpris.MediaPlayer2." + playerName,
-//                                        "/org/mpris/MediaPlayer2",
-//                                        "org.freedesktop.DBus.Properties",
-//                                        "PropertiesChanged",
-//                                        this,
-//                                        SLOT (onPropertyChange (QDBusMessage)));
+    QDBusConnection::sessionBus().disconnect(
+                "org.mpris." + playerName,
+                "/Player",
+                "org.freedesktop.MediaPlayer",
+                "TrackChange",
+                "a{sv}",
+                this,
+                SLOT(onTrackChange(QVariantMap)));
+
+    QDBusConnection::sessionBus().disconnect (
+                "org.mpris.MediaPlayer2." + playerName,
+                "/org/mpris/MediaPlayer2",
+                "org.freedesktop.DBus.Properties",
+                "PropertiesChanged",
+                this,
+                SLOT (onPropertyChange(QDBusMessage)));
 }
 
 QStringList MainWindow::getPlayersList()    // переделать. сделать через абстрактный класс, с переопределением метода
@@ -358,4 +363,45 @@ void MainWindow::onPlayersExistenceChanged(QString name, QString, QString newOwn
     }
 
     refreshPlayersList();
+}
+
+void MainWindow::onPropertyChange(QDBusMessage msg)
+{
+    qDebug() << "changed";
+    QDBusArgument arg = msg.arguments ().at (1).value<QDBusArgument> ();
+    const QVariantMap& map = qdbus_cast<QVariantMap> (arg);
+
+    QVariant v = map.value ("Metadata");
+    if (v.isValid ())
+    {
+        arg = v.value<QDBusArgument> ();
+        QVariantMap m = qdbus_cast<QVariantMap> (arg);
+        ui->plainTextEdit->appendPlainText("\n");
+        foreach (QString key, m.keys()) {
+            ui->plainTextEdit->appendPlainText(QString("%1: %2").arg(key,m[key].toString()));
+        }
+
+        QString str;
+        if (m.contains("xesam:title"))
+            str.append("title " + m["xesam:title"].toString() + " ");
+
+        if (m.contains("xesam:artist"))
+            str.append("artist " + m["xesam:artist"].toString() + " ");
+
+        if (m.contains("xesam:album"))
+            str.append("source " + m["xesam:album"].toString() + " ");
+
+        if (m.contains("xesam:trackNumber"))
+            str.append("track " + m["xesam:trackNumber"].toString() + " ");
+
+        if (m.contains("mpris:length"))
+            str.append(QString("length %1").arg(secToTime(m["mpris:length"].toLongLong() / 1000000)));
+        ui->plainTextEdit->appendPlainText(str);
+    }
+
+    v = map.value("PlaybackStatus");
+    if (v.isValid())
+    {
+        ui->plainTextEdit->appendPlainText("Status " + v.toString());
+    }
 }

@@ -53,11 +53,11 @@ protected slots:
     void playerStop();
     void playerPrev();
     void playerNext();
-    void playerChange(const QString &Name);
+    void playerChange(const QString &);
     void setPlayerVersion(bool);
-    void onTrackChange(QVariantMap m_metadata);
-    void onPlayerStatusChange(PlayerStatus status);
-    void onPropertyChange(QDBusMessage msg);
+    void onTrackChange(QVariantMap);
+    void onPlayerStatusChange(PlayerStatus);
+    void onPropertyChange(QDBusMessage);
     void onPlayersExistenceChanged(QString, QString, QString);
 
 private:
